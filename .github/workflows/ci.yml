@@ -38,13 +38,19 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       # 중요: 여기서는 latest 태그만 사용
+      - name: Generate timestamp
+        id: timestamp
+        run: echo "timestamp=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           platforms: linux/amd64
-          tags: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
+          tags: |
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:${{ steps.timestamp.outputs.timestamp }}
 
       - name: Checkout infrastructure repository
         uses: actions/checkout@v3
@@ -72,8 +78,8 @@ jobs:
           # values.yaml 파일 내용 확인
           echo "Current values.yaml content:"
           cat values.yaml
-          # 명시적으로 latest 태그로 설정
-          sed -i "s/tag: \".*\"/tag: \"latest\"/g" values.yaml
+          # 타임스탬프 태그로 설정
+          sed -i "s/tag: \".*\"/tag: \"${{ steps.timestamp.outputs.timestamp }}\"/g" values.yaml
           # 변경 후 확인
           echo "Updated values.yaml content:"
           cat values.yaml
